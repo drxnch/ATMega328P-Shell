@@ -4,6 +4,7 @@
 #include <avr/interrupt.h>
 #include <stdlib.h>
 #include <util/delay.h>
+#include <string.h>
 
 #include <sysTime.h>
 #include <UART.h>
@@ -53,7 +54,7 @@ int main(void) {
 
         if (currentTime - lastBlinkTime >= BLINK_DURATION) {
             PORTD ^= (1 << PD2);
-            //printString("Time: "); printInt(currentTime); printString("\r\n");
+            printString("Time: "); printInt(currentTime); printString("\r\n");
             lastBlinkTime = currentTime;
         }
 
@@ -79,27 +80,41 @@ int main(void) {
 
         if (UCSR0A & (1 << RXC0)) { // This feels like non-blocking code, but not too sure
             unsigned char c = USART_Receive(); // read received byte
-            UART_sendbyte(c);
-
-            if (UDR0 == 10 || UDR0 == 13) {
-                for (int i = 0; i < 100; i++) {
-                        UART_sendbyte(rx_buffer[i]);
-                }
-                for (int j = 0; j < 100; j++) rx_buffer[0] = '\0';
-                rx_buffer_counter = 0;
-            }
+            UART_sendbyte(c); // Print character (debugging)
 
             //Add to buffer
             rx_buffer[rx_buffer_counter] = c;
             rx_buffer_counter++;
 
-            // if (UDR0 == 10) { // if new line
-            //     for (int i = 0; i < 100; i++) {
-            //         while (!(UDR0 == 32)) {
-            //         }
+            if (UDR0 == 13) {
+                //printString("Enter pressed\r\n");
+                char word[100];
+                uint8_t word_pos = 0;
 
-            //     }  
-            // }
+                for (int i = 0; i < rx_buffer_counter; i++) { 
+                    char ch = rx_buffer[i];
+                    //UART_sendbyte(ch); printString("\r\n");
+
+
+                    if (ch == ' ' || ch == '\r') { //get the word
+                        //printString("Identified word gap or enter\r\n");
+                        word[word_pos] = '\0';
+                        if (strcmp(word, "read") == 0) printString("Reading Pin\r\n");
+                        
+                        for (int j = 0; j < 10; j++) word[0] = '\0'; // Clear word for next word
+                        word_pos = 0;
+                    }
+                    else {
+                        word[word_pos] = rx_buffer[i];
+                        word_pos++;
+                        //printInt(word_pos); printString("\r\n");
+                    }
+                }
+
+                // Clear rx_buffer
+                for (int j = 0; j < 100; j++) rx_buffer[0] = '\0';
+                rx_buffer_counter = 0;
+            }
         }   
 
     }
