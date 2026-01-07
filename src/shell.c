@@ -35,15 +35,15 @@ const gpio_pin_t gpio_map[] = {
     { &DDRB, &PORTB, &PINB, 4, -1 }, // D12 // PB4 // 12
     { &DDRB, &PORTB, &PINB, 5, -1 }, // D13 // PB5 // 13
 
-    { &DDRC, &PORTC, &PINC, 0, -1 }, // D14 // PC0 // 14
-    { &DDRC, &PORTC, &PINC, 1, -1 }, // D15 // PC1 // 15
-    { &DDRC, &PORTC, &PINC, 2, -1 }, // D16 // PC2 // 16
-    { &DDRC, &PORTC, &PINC, 3, -1 }, // D17 // PC3 // 17
-    { &DDRC, &PORTC, &PINC, 4, -1 }, // D18 // PC4 // 18
-    { &DDRC, &PORTC, &PINC, 5, -1 }, // D19 // PC5 // 19
+    { &DDRC, &PORTC, &PINC, 0, 1 }, // D14 // PC0 // 14
+    { &DDRC, &PORTC, &PINC, 1, 1 }, // D15 // PC1 // 15
+    { &DDRC, &PORTC, &PINC, 2, 1 }, // D16 // PC2 // 16
+    { &DDRC, &PORTC, &PINC, 3, 1 }, // D17 // PC3 // 17
+    { &DDRC, &PORTC, &PINC, 4, 1 }, // D18 // PC4 // 18
+    { &DDRC, &PORTC, &PINC, 5, 1 }, // D19 // PC5 // 19
 };
 
-void readValue(char *arg_1, uint8_t *arg_2) {
+void readValue(char *arg_1, uint8_t arg_2) {
     // if (arg_1[0] == 'b') {
     //     printString("We have infiltrated base B!\r\n");
     //     printString("The location is Port "); UART_sendbyte(location[0]); printString(", and position: "); UART_sendbyte(location[1]); printString("\r\n");
@@ -63,16 +63,24 @@ void readValue(char *arg_1, uint8_t *arg_2) {
     //     else {printInt(0); printString("\r\n");}
     // }
 
-    uint8_t pin_arg = arg_2;
+    uint8_t pin_arg =arg_2;
     gpio_pin_t pin = gpio_map[pin_arg];
     
     // Read the pin
-    uint8_t pin_value = (*(pin.pin) & (1 << pin.bit)) ;
-    printInt(pin_value);
+    uint8_t pin_value = ((*(pin.pin) & (1 << pin.bit)) != 0);
+    printInt(pin_value); printString("\r\n");
 }
 
-void setPin(char *arg_1, uint8_t *arg_2) {
+void setPin(uint8_t arg_1, uint8_t arg_2) {
+    uint8_t pin_arg = arg_1;
+    gpio_pin_t pin = gpio_map[pin_arg];
+  printInt(pin_arg); printString(" "); printInt(arg_2); printString("\r\n");
 
+    //Set the pin
+    if (arg_2 == 1) *(pin.ddr) |= (1 << pin.bit);
+    else if (arg_2 == 0)  *(pin.ddr) &= ~(1 << pin.bit);
+    uint8_t pin_value = ((*(pin.ddr) & (1 << pin.bit)) != 0);
+    printInt(pin_value); printString("\r\n");
 }
 
 void parseBuffer(char *line) {
@@ -80,9 +88,13 @@ void parseBuffer(char *line) {
     char *action = strtok(line, " ");
     char *object = strtok(NULL, " ");
     char *arg_1 = strtok(NULL, " ");
-    uint8_t *arg_2 = strtok(NULL, " ");    
+    char *arg_2 = strtok(NULL, " ");    
+    uint8_t arg_1_value = 0;
+    uint8_t arg_2_value = 0; 
+    if (arg_1) arg_1_value = (uint8_t)strtoul(arg_1, NULL, 10);
+    if (arg_2) arg_2_value = (uint8_t)strtoul(arg_2, NULL, 10);
 
-    printString(action); printString(object); printString(arg_1);printString(arg_2);printString("\r\n");
+    printString(action); printString(object); printInt(arg_1_value);printString(arg_2);printString("\r\n");
     
     if (!action || !object || !arg_1) {
         printString("I don't have all commands bro.\r\n"); 
@@ -97,7 +109,7 @@ void parseBuffer(char *line) {
         if (strcmp(action, "write") == 0) {
       if (strcmp(object, "pin") == 0) {
         printString("Writing Pin\r\n");
-        setPin(arg_1,arg_2);
+        setPin(arg_1_value,arg_2_value);
       }  
     }
 }
